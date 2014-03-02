@@ -1,147 +1,168 @@
-Guide You - DEV
-===============
+#Guide You - DEV#
 
-INTRODUCTION
-------------
+
+##INTRODUCTION##
+
 
 Ce projet est realisé dans le cadre de la validation des acquis de Developpement, Webdesign, et Gestion de projet.
 
 ***
 
-STRUCTURE DU PROJET
--------------------
+##STRUCTURE DU PROJET##
 
-Architecture du projet, MVC Custom:
+
+Architecture du projet, MVC de type framework:
 
 	|_Projet
-		|_ /CSS
-		|_ /IMG
-		|_ /JS
-		|_ /Modules
-			|_ /mod_404
-				|_ /Actions	--> (controlleurs)
-					|_ action1.php
-					|_ action2.php
-					|_ ...
-				|_ /img
-				|_ /styles
-				|_ /views	--> (views)
-					|_ view1.view.php
-					|_ view2.view.php
-					|_ ...
-				|_ index.php
-			|_ /mod_dashboard
-				|_ /Actions --> (controlleurs)
-					|_ action1.php
-					|_ action2.php
-					|_ ...
-				|_ /img
-				|_ /js
-				|_ /models  --> (modeles)
-					|_ model1.model.php
-					|_ model2.model.php
-					|_ ...
-				|_ /styles
-				|_ /views	--> (views)
-					|_ view1.view.php
-					|_ view2.view.php
-					|_ ...
-				|_ index.php
+		|-- configuration.php
+		|-- index.php
+		|-- /global				-->(template)
+		|-- /libs				-->(Facebook,PHPMailer,lib core Guideyou)
+		|-- /local				-->(fichier traduction)
+		|-- /modules
+			|-- /mod_404
+				|-- /actions	--> (controleurs)
+				|-- /img
+				|-- /styles
+				|-- /views		--> (views)
+				|-- index.php 
+			|-- /mod_dashboard
+				|-- /actions	--> (controleurs)
+				|-- /img
+				|-- /styles
+				|-- /js
+				|-- /views		--> (views)
+				|-- index.php 
 			|_ /mod_home
-				|_ /Actions --> (controlleurs)
-					|_ action1.php
-					|_ action2.php
-					|_ ...
-				|_ /img
-				|_ /js
-				|_ /styles
-				|_ /views	--> (views)
-					|_ view1.view.php
-					|_ view2.view.php
-					|_ ...
-				|_ index.php
+				|-- /actions	--> (controleurs)
+				|-- /img
+				|-- /styles
+				|-- /js
+				|-- /views		--> (views)
+				|-- index.php 
 			|_ /mod_user
-				|_ /Actions --> (controlleurs)
-					|_ action1.php
-					|_ action2.php
-					|_ ...
-				|_ /models  --> (modeles)
-					|_ model1.model.php
-					|_ model2.model.php
-					|_ ...
-				|_ /views	--> (views)
-					|_ view1.view.php
-					|_ view2.view.php
-					|_ ...
-				|_ index.php
+				|-- /actions	--> (controleurs)
+				|-- /img
+				|-- /styles
+				|-- /js
+				|-- /views		--> (views)
+				|-- index.php 
 			|_ /mod_offer
-				|_ /Actions --> (controlleurs)
-					|_ action1.php
-					|_ action2.php
-					|_ ...
-				|_ /models  --> (modeles)
-					|_ model1.model.php
-					|_ model2.model.php
-					|_ ...
-				|_ /views	--> (views)
-					|_ view1.view.php
-					|_ view2.view.php
-					|_ ...
-		|_ configuration.php
-		|_ index.php
+				|-- /actions	--> (controleurs)
+				|-- /img
+				|-- /styles
+				|-- /js
+				|-- /views		--> (views)
+				|-- index.php 
 		|_ README.md
 
 
-FONCTIONNEMENT MVC
-------------------
-Ce MVC fonctionne de la facon suivante: 
+##FONCTIONNEMENT FRAMEWORK##
 
-	Racine Index.php > module index.php > action.php > view.view.php
+Ce Framework MVC fonctionne de la facon suivante: 
 
-Le fichier **index.php** en racine, requière le fichier de configuration **configuration.php**.
-Si un des modules est appelé, on le recupère dans la variable $module, sinon on affiche la home par default:
-	
+	Racine Index.php (dispatcheur principal) ==> module index.php (dispatcheur de module) ==> action.php (controleur) ==> view.view.php (view)
+
+###Dispatcheur Principal & configuration.php###
+
+Le dispatcheur principal, _**index.php**_ en racine, requière le fichier de configuration _**configuration.php**_.
+C'est le fichier qui instancie les classes **Guideyou** et **Translation**, et définit les variables d'environnement.
+
+La classe **Guideyou**, est la classe qui contient les fonctionalités *"coeur"* du Framework.
+Elle définit les méthodes d'appels, des views, des modèles, actions, modules, de connection BDD, de création de session, ...
+
+La classe **Translation** est la classe qui s'occupe de traduire le contenu que l'on a définit grâce à _**get_text**_, dans les fichiers *.mo* du dossier *locale*.
+
+Ce dispatcheur de premier niveau permet "*d'aguiller*" sur le bon module, par défaut, si aucun module n'est renseigner, la **Home** devient le module courant:
+
+```php	
 	<?php $module = (!empty($_GET['module'])) ? $_GET['module'] : 'home'; ?>
+```
 
-On verifie alors si le fichier **index.php** du dossier module appelé existe:
+Il vérifie alors que le dispatcheur du module appelé existe bien, grâce à la fonction **getModule**, de la classe *Guideyou*:
 
-	<?php if(is_file(PATHROOT.'/modules/mod_'.$module.'/index.php')) ?>
-
-On inclut alors ce fichier:
-
-	<?php include(PATHROOT.'/modules/mod_'.$module.'/index.php'); ?>
-
-Fichier **index.php** du repertoire module
-On définit tout d'abord les variables d'environnement (répertoire courant):
-
+```php
 	<?php
-	define('MODULEROOT', __DIR__.'/');
+		if(!$Guideyou->getModule($module)) {                      
+		    // Redirection 404
+		    header('Location: '.SERVERROOT.'404/'); 	
+		}
+	?>
+```
+
+###Dispatcheur de module###
+
+Le dispatcheur de module, prend alors le relais.
+Tout d'abord, les variables d'environnement sont initialisés (répertoire courant):
+
+
+```php
+	<?php
+	// Définition du répertoire du module
+		define('MODULEROOT', __DIR__.'/');
+	// Définition de l'adresse du module par rapport au serveur
 	$path = explode('modules', MODULEROOT);
-	define('MODULEPATH', SERVERROOT.'/modules'.$path[1]);?>
+		define('MODULEPATH', SERVERROOT.'modules'.$path[1]);	
+	?>
+```
 
-Chaque module possède un dossier actions, chaque fichier de ce dossier contient les controlleurs pour chaque fonctionnalité du module (ajout, suppression, ...).
-Les actions sont recupèrés via url.
-Si une action est definie, on recupère le fichier action.php, sinon main.php est inclu:
+Chaque module possède un dossier *actions*, qui contient les controleurs pour chaque fonctionnalité du module (ajout, suppression, ...).
+Les actions sont ainsi recupèrés via url ("http://guideyou.co/module/action").
 
-	<?php $action = (!empty($_GET['action'])) ? __DIR__.'/actions/'.$_GET['action'].'.php' : __DIR__.'/actions/main.php'; ?>
+Si une action est definie, on recupère le fichier action.php, sinon main.php est inclu par défaut:
 
-Si le fichier action existe, on l'inclue sinon redirection 404 (index.php du module 404):
+```php
+	<?php 
+		$action = (!empty($_GET['action'])) ? $_GET['action'] : 'main';
+	?>
+```
 
-	<?php is_file($action) ? include($action) : include(PATHROOT.'/modules/mod_404/index.php'); ?>
+Si le fichier action existe, on l'inclue sinon redirection 404 (index.php du module 404), vérifié par la fonction **getAction()**, de la classe *Guideyou*:
 
-Chaque action inclut (require) la view qui lui correspond.
+```php
+	<?php
+		if(!$Guideyou->getAction($action)) {                      
+		    //redirection 404
+		    header('Location: '.SERVERROOT.'404/');
+		}
+	?>
+```
+
+###Actions###
+
+Chaque action inclut la view qui lui correspond grâce à la fonction **getAction()** de la classe *Guideyou*.
+
+```php
+	<?php
+		$Guideyou->getview('main', 
+		array(
+			'title' => 'Guideyou', 
+			'offerList' => $offerList, 'userInformations' => $userInformations	// paramètres passées à la vue
+		), 
+		array(
+			'css' => array(
+				array('path' => 'global', 'file' => 'global.css'),  			// css global
+				array('path' => 'module', 'file' => 'home.css')					// css du module
+			), 
+			'js' => array(
+				array('path' => 'global', 'file' => 'jquery-2.0.3.min.js'),		// js global	
+				array('path' => 'global', 'file' => 'jquery-ui-1.10.4.min.js'),	// js global
+				array('path' => 'global', 'file' => 'global.js'),				// js global
+				array('path' => 'module', 'file' => 'home.js')					// js du module
+			)
+		)
+	);
+	?>
+```
 De même, chaque module possède un dossier view qui contient un fichier main.view.php et un fichier action.view.php.
-Ces views dites annexes sont la plupart du temps un encodage JSON de la variable qui est retourné par le fichier action:
-
-	<?php echo json_encode($offer); ?>
-
 Les main.view.php sont les fichiers view de defaut qui contiennent du HTML.
-Ils utilisent les dossiers CSS,IMG,JS commun (racine du site), et ceux de leur module si ils possèdent des demandes specifiques. 
+
+Ils utilisent les dossiers CSS,IMG,JS commun (**/global**), et ceux de leur module si ils possèdent des demandes specifiques appélé par le paramètre **$files** de la fonction **getView()** de la classe **Guideyou**. 
 
 ***
 
-MODELISATION
-------------
+##MODELISATION##
+
 
 La modélisation est disponible dans le fichier .mwb.
 
@@ -172,18 +193,18 @@ La table *Calendrier* permet de stocker les jours de disponibilités d'un guide 
 Elle est donc liée à la table Prestation, via le champs cal_presta_ID.
 
 La table *Commentaires* répertorie tous les commentaires d'une.
-Elle est liée à la table prestation afin de savoir à quel prestation appartient le commentaire via le champs com_pre_ID (FK).
+Elle est liée à la table Commande afin de savoir à quel numéro de commande et à quel prestation appartient le commentaire via le champs com_pre_ID (FK).
 
 ***
 
-FONCTIONNALITES
----------------
+##FONCTIONNALITES##
 
-Ici seront decrites les differentes fonctionnalités du site, par decoupage de module:
 
-**Dashboard**
+Ici seront décrites les différentes fonctionnalités du site, par découpage de module:
 
-Le Dashboard est une interface de gestion qu'utilise un guide pour creer, modifier ou supprimer une/des offres.
+###Dashboard###
+
+Le Dashboard est une interface de gestion qu'utilise un guide pour créer, modifier ou supprimer une/des offres.
 
 Resumé des fonctionalités:
 
@@ -196,7 +217,7 @@ Resumé des fonctionalités:
 
 ###CREATION D'UNE OFFRE###
 
-La création des offres se declenche lors du click sur le bouton *Call to action* Post an Offer.
+La création des offres se déclenche lors du click sur le bouton *Call to action* Post an Offer.
 Cette création ne fait intervenir en aucun cas du script php.
 
 En effet, tant que le guide ne **save** pas une offre, elle reste un element du DOM uniquement.
@@ -209,7 +230,12 @@ Il suffira en suite au guide de la sauvegarder pour la garder en memoire.
 
 Par defaut, si le guide crée une offre, et quitte sa modification sans sauvegarder ses modifications, il est avertit via alerte que cela va faire disparaitre/supprimer cette offre (Element temporaire du DOM).
 
-C'est le fichier **app.js** qui se charge de cette fonctionnalité.
+C'est le fichier **dashboard.js** qui se charge de cette fonctionnalité.
+
+Lors de la création de l'offre, on peut renseigner des *Tags/Catégories* de celle-ci.
+On utilise alors le js _**selectize**_.
+
+Pour l'upload de photo, c'est _**Jquery_Fileupload**_ que l'on utilise afin de rendre l'expérience utilisateur plus vivante.
 
 ***
 
@@ -222,96 +248,30 @@ Il existe trois grosses sous-parties dans la modification des offres:
 
 ####LE CALENDRIER####
 
-Le calendrier est génerer via du Code PHP.
-Le modèle utilisé est *Calendar.model.php*.
+Le calendrier est génerer via code PHP.
+Le modèle utilisé est _**Calendar.model.php**_.
 
 Il se construit de la façon suivante:
 
 La première étape est la verification afin de savoir si nous traitons le calendrier pour une offre crée (pas en BDD), ou une offre rapatriée depuis la BDD.
 
-Dans le deuxième cas, la construction va necessiter de recuperer les jours de disponibilités, le reste étant commun au deux cas.
+Dans le deuxième cas, la construction va nécessiter de recuperer les jours de disponibilités, le reste étant commun au deux cas.
 
 ***
 
 #####CONSTRUCTION DU CALENDRIER#####
 
-On recupère la valeur du mois (Entier transforme en string), de l'annee courante, les mois juxtaposés au mois courant (suivant et precèdant) pour la construction des liens, et le premier jour du mois (il faut déterminer si celui-ci est un mardi ou un dimanche par exemple)
-
-```php
-<?php
-$results = array();
-// On récupère la variable POST du mois et on la transforme en sa valeur string (2->Février)
-$results['month'] = $_POST['oMonth'];
-$results['month_letter'] = $calendar->getMonth($month);
-$results['year'] = $year;
-// on récupère le mois précedant et le suivant
-$results['next_date'] = $calendar->getNext($month, $year, 1);
-$results['previous_date'] = $calendar->getNext($month, $year, -1);
-
-$tab_days = array();
-// on récupère le premier jour du mois (lundi, mardi, ...)
-$num_day = $calendar->getFirstDay($month, $year);
-?>
-```
-
+On recupère la valeur du mois (Entier transforme en string), de l'annee courante, les mois juxtaposés au mois courant (suivant et precèdant) pour la construction des liens, et le premier jour du mois (il faut déterminer si celui-ci est un mardi ou un dimanche par exemple).
  
-Cette fonction **getFirstDay** est construite de la maniere suivante:
-
-```php
-<?php
-public function getFirstDay($month, $year){
-	$tmstp = mktime(0,0,0,$month,1,$year);
-	$day = date("w",$tmstp);
-	$tab_day = array(0=>7,1=>1,2=>2,3=>3,4=>4,5=>5,6=>6);
-
-	return $tab_day[$day];
-}?>
-```
+La fonction **getFirstDay**, a pour rôle de définir qu'elle sera le premier jour du mois courant.
  
-Si nous sommes dans le cas d'une offre importée de la BDD, il faut également récuperer les jours de disponibilités.
-
-```php
-<?php
-// Si l'id de l'offre n'est pas null
-if($_POST['oID'] != -1) {
-	// On récupère les jours de disponibilité de l'offre
-	$dates = $calendar->getOfferDates($_POST['oID']);
-	// Chaque date est ajouté au tableau $arr_dates au format J/M/A
-	foreach($dates AS $date) {
-		$arr_dates[] = $date['cal_JOUR'].'/'.$date['cal_MOIS'].'/'.$date['cal_ANNEE'];
-	}
-}
-?>
-```
+Si nous sommes dans le cas d'une offre importée de la BDD, il faut également récuperer les jours de disponibilités grâce à la fonction **$getOfferDates()**.
  
 On crée alors le tableau, en affectant la class *empty* aux jours du mois precedant.
-
-```php
-<?php
-if($count < $num_day) {
-		$tab_days[$count]='<td class="empty"></td>';
-	}
-?>
-```
-
  
 On vérifie si la date active est valide et appartient bien au mois courant, on ajoute alors le jour.
 
 Dans le cas d'une offre déjà enregistrée, on regarde si le jour est un jour disponible, dans ce cas il hérite de la class *selected*. 
-
-```php
-<?php
-if(checkdate($month, $num_current_day, $year)) {
-	// Si la date est contenu dans le tableau des jours de dispo, on rajoute class active au td
-	$active = (in_array($num_current_day.'/'.(int) $month.'/'.$year, $arr_dates)) ? ' class="active"' : null;
-	$tab_days[$count]='<td'.$active.' id="'.$num_current_day.'-'.(int) $month.'-'.$year.'">'.$num_current_day.'</td>';
-	$num_current_day++;
-}
-else {
-	// si on est dans les jours du mois suivant
-	$tab_days[$count]='<td class="empty"></td>';
-}?>
-```
 
 
  
@@ -322,53 +282,9 @@ Ce sont 2 versions de la fonction, l'une traite une liste de jours (**selectdays
 
 **Selectdays()** est la fonction qui traite le tableau temporaire des jours cliqués pour une nouvelle offre.
 
-La fonction **selectday()** est utilise pour les offres BDD via appel dans le code javascript du fichier **app.js**:
+La fonction **selectday()** est utilisée, pour les offres contenues en BDD, via appel dans le code javascript du fichier **app.js**.
 
-```javascript
-$.post("selectday/", { oID: oID, oDay: idD[0], oMonth: idD[1], oYear: idD[2], oAction: 1 }, function(data) {
-	// On parse les données json renvoyées
-	var results = $.parseJSON(data);
-	// Si tout est OK, on ajoute la classe active
-	if(results.status == 1) { tElt.addClass('active'); }
-	// Sinon, on affiche un message d'erreur
-	else { 
-		$('.message-response').removeClass().addClass('message-response error').html('An error occured during selectioning this day !').fadeIn(500);
-		setTimeout(function() {
-			$('.message-response').fadeOut(500);
-		}, 5000);
-	}
-});
-``` 
-
-Le changement de mois est declenché lors du click sur les liens:
-
-```javascript
-$.post("getmonthcalendar/", { oID: oID, oMonth: oMonth, oYear: oYear }, function(data) {
-	// On parse les données json renvoyées
-	var results = $.parseJSON(data);
-	// On affiche le MOIS et l'ANNÉE
-	ptitle.html(results.month_letter+' '+results.year+'<div style="display: none;" class="currentMonth">'+results.month+'</div><div style="display: none;" class="currentYear">'+results.year+'</div>').fadeIn(500);
-	// On modifie le lien du mois précédent
-	$('.calendar .table-title a.left-arrow').attr('id', 'pm-'+results.previous_date['month']+'-'+results.previous_date['year']);
-	// On modifie le lien du mois suivant
-	$('.calendar .table-title a.right-arrow').attr('id', 'nm-'+results.next_date['month']+'-'+results.next_date['year']);
-	// On initialise days
-	var days = '';
-	// On initialise le compteur à 1
-	var count = 1;
-	// On parcourt le tableau tab_days renvoyé
-	for(var key in results.tab_days) {
-		// Si on est sur la première ligne
-		if(count == 1) { days += '<tr class="days">'; days += results.tab_days[key]; }
-		// Si on est à la fin d'une ligne
-		else if(count == 8) { days += '</tr><tr class="days">'; days += results.tab_days[key]; count = 1; }
-		// Pour tout le reste
-		else { days += results.tab_days[key]; }
-		// On incrèmente le compteur
-		count++;
-	}
-}
-``` 
+Le changement de mois, lui, est declenché lors du click sur les liens présentes en tête du calendrier (de part et d'autres du mois).
 
 ***
 
@@ -378,9 +294,9 @@ La Sauvegarde est la fonction js contenue dans le fichier **app.js** qui enregis
 
 Apres verifications des champs, leurs valeurs sont envoyées en BDD par les fonctions:
 
-* **addOffer()**, dans le cas d'une nouvelle offre
-* **updateOffer()**, pour les champs propre à une prestation (update de la table prestation)
-* **updateImage()**, addImage, updateCoverImage, selectPictures & selectCover pour les champs images et cover de la table prestation
+- **addOffer()**, dans le cas d'une nouvelle offre
+- **updateOffer()**, pour les champs propre à une prestation (update de la table prestation)
+- **updateImage()**, addImage, updateCoverImage, selectPictures & selectCover pour les champs images et cover de la table prestation
 
 
 ***
@@ -394,9 +310,6 @@ En fonction des paramètres, les fonctions **updateCoverImage()**, **updateImage
 
 Les fonctions **selectPictures()** & **selectCover()** sont des fonctions du modèle Dashboard, qui permettent au guide de pouvoir placer une image déjà uploadée en tant que cover.
 
-```sql
-UPDATE prestation set pre_COVER = :oCover WHERE pre_ID = :oID
-```
 
 ***
 
@@ -406,51 +319,16 @@ La suppression est declenchée lors du click sur le bouton de suppression (croix
 
 Il y a deux cas de suppression: suppression nouvelle offre & suppression normal.
 
-Dans le cas de la suppression nouvelle offre, aucun code PHP est appele, on supprime juste les elements de l'offre du DOM après confirmation du guide.
+Dans le cas de la suppression nouvelle offre, aucun code PHP est appelé, on supprime juste les elements de l'offre du DOM après confirmation du guide.
 
-```javascript
-// Si on est dans une nouvelle offre
-if(newOffer == 1) {
-	// On réinitialise le tableau des jours sélectionnés
-	tab_days_selected = new Array();
-	// On affiche une alerte demandant à l'utilisateur s'il est sur ou non
-	var c = confirm('Would you really remove this new offer ? All changes will be lost !');
-	// Si la réponse est OK
-	if(c == true) {
-		// On supprime les éléments correspondant à la nouvelle offre dans la liste
-		$('.offers-list ul li:first-child').remove();
-		$('.offers-list ul .sep:first-child').remove();
-		// On cache les divs container-offer et options
-		$('.container-offer').fadeOut(500);
-		$('.options').fadeOut(500);
-		// Après 500ms, on affiche la div welcome-offer
-		setTimeout(function() {
-			$('.welcome-offer').fadeIn(500);
-		}, 500);
-		// On dit qu'on est plus dans une nouvelle offre
-		newOffer = 0;
-	}
-```
 
 Dans le cas de la suppression normal, on declenche l'action **deleteoffer.php** et l'offre est retiré du DOM (FadeOut).
 
-```javascript
-$.post("deleteoffer/", { offID: offID }, function(data)
-```
-
-En cas d'erreur, on retournera un message d'erreur.
-
-```javascript
-// On affiche un message d'erreur
-$('.message-response').removeClass().addClass('message-response error').html('An error occured during the deleting !').fadeIn(500);
-setTimeout(function() {
-	$('.message-response').fadeOut(500);
-}, 5000);
-```
+En cas d'erreur, on retournera un message d'erreur, pour prévenir le guide.
 
 ***
 
-##CONNEXION/INSCRIPTION - MODULE USER##
+##MODULE USER##
 
 Le module *User* est le module qui se charge de la connexion ou de l'inscription, d'un client/guide.
 Il se charge également de l'affichage de la page de profil d'un utilisateur.
@@ -474,27 +352,22 @@ La connexion sur le site GuideYou peut se dérouler de deux façons:
 
 ####CONNEXION NORMALE####
 
-Une fois le formulaire remplit, l'action login.php se charge de logguer l'utilisateur.
+Une fois le formulaire remplit, l'action login.php se charge de logguer l'utilisateur:
+Aprés avoir récuperer l'email et le password remplit dans le formulaire (valeur type POST), l'action utilise la méthode **loginUser($email, $password)** du modèle *Login* précedement instancié.
 
-```php
-<?php
-// Instaciation du modèle Login
-$login = new Login();
-// Récupération des champs du formulaire logins
-$email = $_POST['email'];
-$password = $_POST['password'];
-
-$results = $login->loginUser($email, $password);
-// on renvoie l'encode json du résultat $resultss
-require(MODULEROOT.'views/login.view.php');
-?>
-```
 ***
 
 ####CONNEXION FACEBOOK####
 
-On utilise l'API facebook login en js.
-Cf. tutorial developpers.facebook.com
+On utilise l'*API Facebook Login* javascript.
+La librairie est stockée dans le répertoire **libs** en racine de l'architecture (*/libs/Facebook/base_facebook.php*,*/libs/Facebook/facebook.php* & */libs/Facebook/fb_ca_chain_bundle.crt*).
+
+*Login_facebook.php* est le controleur qui se charge de récupérer les informations de l'utilisateur FB et, de loguer celui-ci sur le site en comparant les informations FB à celle en BDD.
+
+Seul l'adresse email du compte FB, est ainsi récuperer.
+
+On inscrit alors l'utilisateur avec les informations récupérés dans notre base de données si celui-ci n'existe pas en s'assurant de passer le champs *uti_FB* à 1, le mot de passe est généré automatiquement, son nom, prénom eux aussi renseigner.
+
 
 ***
 
@@ -503,56 +376,16 @@ Cf. tutorial developpers.facebook.com
 L'inscription est gérée par l'action **signup.php**, qui récupère les valeurs *POST* du formulaire d'inscription.
 Elle utilise ensuite la fonction **signupUser()** du modèle Signup précedement instancié.
 
-```php
-<?php
-// Instaciation du modèle Signup
-$signup = new Signup();
-// Récupération des champs du formulaire signup
-$lastname = $_POST['lastname'];
-$firstname = $_POST['firstname'];
-$mailaddress = $_POST['mailaddress'];
-$upassword = $_POST['upassword'];
-
-$is_guide = (isset($_POST['beaguide'])) ? 1 : 0;
-
-$results = $signup->signupUser($lastname, $firstname, $mailaddress, $upassword, $is_guide);
-?>
-```
 ***
 
-####VERIFICATION EMAIL
+####VERIFICATION EMAIL####
 
 Une fois le formulaire rempli, les informations sont stockées en base et une clé de vérification est générée.
 Celle-ci est envoyé via mail à l'utilisateur avec un lien personnalisé renvoyant sur l'action **signup.php**,
 mais avec une Url personnalisée de format : http://guideyou.co/user/cle,mail.
 
-La cle est le chiffrages SHA-1 du lastname, firstname et du mail de l'utilisateur. Elle est comparée via la génération de la clé lors de la vérification email (on ne stocke pas la clé en BDD).
+La cle est le chiffrage SHA-1 du lastname, firstname et du mail de l'utilisateur. Elle est comparée via la génération de la clé lors de la vérification email (on ne stocke pas la clé en BDD).
 
-
-```php
-<?php
-public function checkKey($mail, $key) {
-	global $connexion;
-
-	$signup_check = $connexion->prepare('select uti_ID, uti_NOM, uti_PRENOM from utilisateur where uti_MAIL = :mail');
-	$signup_check->bindParam(':mail', $mail, PDO::PARAM_STR);
-	$signup_check->execute();
-	$r = $signup_check->fetch();
-
-	$results = array();
-
-	if($key == sha1($r['uti_NOM'].$r['uti_PRENOM'].$mail)) {
-		$signup_a = $connexion->prepare('update utilisateur set uti_ACTIVATION = 1 where uti_MAIL = :mail');
-		$signup_a->bindParam(':mail', $mail, PDO::PARAM_STR);
-		$signup_a->execute();
-
-		$_SESSION['uID'] = 'uti_'.$r['uti_ID'];
-
-		header('Location: '.SERVERROOT);
-	}
-}
-?>
-```
 
 ***
 
@@ -561,36 +394,21 @@ public function checkKey($mail, $key) {
 Cette page affiche les informations d'un utilisateur.
 Elle est gérée par l'action **profile.php** qui utilise le modèle *User*.
 
-```php
-<?php
-// Instanciation du modèle
-$user = new User();
-// On récupère les infos de l'utilisateur
-$userInformations = $user->getInformationsUser($p);
-?>
-```
-
 Dans le cas où l'utilisateur est un guide, on affiche également la liste des offres de ce dernier.
 
-```php
-<?php
-// Si l'utilisateur est un guide
-if($userInformations['uti_gui_IS'] == 1) {
-	$dashboard = new Dashboard();
-	// On récupère les offres du guide
-	$offers = $dashboard->getGuideOffers($p);
-	// On récupère tous les commentaires sur ce guide
-	$commentaires = $dashboard->getCommentsUser($p);
-	// Pour chaque offre, on récupère également sa note.
-	foreach($offers AS $offer) {
-		$note_temp = $dashboard->getNoteOffer($offer['pre_ID'], 1);
-		$note[$offer['pre_ID']] = (isset($note_temp)) ? $note_temp : null;
-	}
-}
-?>
-```
+Si le guide est de type pro, un petit badge le signalera en tant que tel.
+
 
 ***
+
+###PAGE SETTINGS###
+
+C'est la page qui sert à un guide ou un client, de modifier les informations personnelles de son compte.
+Elle est constitué d'un formulaire.
+
+Si l'utilisateur est un guide, alors cette page laisse apparaitre un second formulaire pour demander à passer PRO.
+Cette demande déclenche un mail à l'admin du site et une notification.
+
 
 ##MODULE OFFER - FRONT CLIENT##
 
@@ -606,24 +424,26 @@ Cette page utilise 3 fonctions du modèle cité plus haut:
 - **getNoteOffer()**, qui récupère/fabrique la note d'une offre
 - **getGuideInformations()**, qui récupère les informations du guide pour cette offre.
 
-```php
-<?php
-// Instanciation du modèle
-$dashboard = new Dashboard();
-// On récupère les informations de l'offre d'id $p
-$offerInformations = $dashboard->getOfferInformations($p);
-// On récupère la note de l'offre
-$noteOffer = $dashboard->getNoteOffer($p, 0);
-// On récupère les informations du guide de cette offre.
-$guideInformations = $dashboard->getGuideInformations($offerInformations['pre_uti_ID']);
-?>
-```
 
-La commande SQL de la fonction **getNoteOffer()**, récupère toutes les notes des commentaires de l'offre et fait la moyenne de ces valeurs :
+La commande SQL de la fonction **getNoteOffer()**, récupère toutes les notes des commentaires de l'offre et fait la moyenne de ces valeurs.
 
-```sql
-SELECT TRIM(TRAILING ".0" FROM ROUND(AVG(com_NOTE),:dec)) from commentaire where com_pre_ID = :oID');
-```
+###CHECKOUT - PANIER###
+
+Guideyou utilise la technologie *ExpressCheckout* de Paypal, pour le payement de ses offres.
+Le bouton *"Purchase this offer"* rajoute l'offre en variable de session et envoie sur l'action payment.php qui se charge d'afficher le panier.
+
+Les informations du panier sont stockés **$_SESSION['produits']**.
+On affiche alors les produits stockés sur les paniers tous en les récupérant dans le tableau **$params** qui est utilisé par la classe *Paypal*.
+
+Cette classe, contient les informations de configuration, concernant Guideyou en tant que compte Paypal, qui permettent d'initialiser les variables pour dialoguer avec l'API de Paypal.
+
+On utilisera la méthode *SetExpressCheckout* pour initialiser et envoyer les informations du payement à Paypal et *GetExpressCheckoutDetails* pour récupérer les informations du payement et les mettre en base de données.
+
+Les données du client sont ainsi directement renseigner sur Paypal et non sur GuideYou, évitant ainsi toutes étapes de payement inutiles puisque ces informations peuvent être récupérer si la commande est validé.
+
+Une fois, celle-ci validé, on récupère donc les informations de la commande, de l'utilisateur.
+Si la commande, possède plusieurs produits, ils pourront être regroupés par le numéro de la commande (*TRANSACTION_ID*), fournie par Paypal, mais apparaissent en base come des commandes uniques.
+
 ***
 
 ###PAGE DE RECHERCHE###
@@ -631,41 +451,82 @@ SELECT TRIM(TRAILING ".0" FROM ROUND(AVG(com_NOTE),:dec)) from commentaire where
 Action **search.php**. Modèle utilisé: *Offer.model.php*
 2 types de retour:
 
-- soit le formulaire est rempli, et on affiche les résultats de la recherche
+- soit le formulaire est rempli, et on cherche des résultats cohérent avec cette recherche, grâce à la fonction **getOffersSearch()**.
 
-```php
-<?php
-//INSTANCIATION DU MODELE
-$offer = new Offer();
-// On récupère la liste des offres qui ressemble à la recherche demandée
-$offerList = $offer->getOffersSearch($_POST['search_offer']);
-// Si aucun résultat ne correspond, on affiche les dernières offres
-if(count($offerList) == 0) {
-	$offerList = $offer->getLastOffersSearch();}
-?>
-```
+- soit , on informe l'utilisateur qu'il n'y a pas de résultats pour sa recherche parmis notre Base de données, et on lui renvoie les 5 dernières offres, via la méthode **getLastOffersSearch()**.
 
-où la fonction **getOffersSearch()** est une fonction recherche de la forme :
+On peut filtrer les résultats via la barre d'outils et en appuyant sur le bouton *Update Search* pour rafraichir les résultats.
 
-```sql
-select * from prestation, utilisateur where pre_uti_ID = uti_ID AND (
-	pre_TITRE like :search
-	OR
-	pre_DESCRIPTION like :search
-	OR
-	pre_LIEU like :search
-	) 
-	order by pre_ID desc'
-```
+***
 
-- soit on renvoie les dernières offres:
+##BACKOFFICE - Panel d'administration##
 
-```php
-<?php $offerList = $offer->getLastOffersSearch(); ?>
-```
+Le backoffice de Guideyou possède 3 onglets:
+- Commandes
+- Utilisateurs
+- Prestations
 
-où la fonction **getLastOffersSearch()** est de la forme:
+L'onglet commande affiche les commandes sous forme de tableaux selon leur état de traitement (abus, versé, en cours, ...).
 
-```sql
-select * from prestation, utilisateur where pre_uti_ID = uti_ID order by pre_ID desc limit 5
-```
+L'onglet Utilisateur affiche les utilisateurs, les guides, et guides PRO, tout en permettant de les supprimer.
+
+L'onglet Prestation affiche les prestations disponibles sur le site, leur prix et leur catégories.
+
+Le backoffice possède également un système de notification qui lui permet de voir, et traité les demandes des guides qui souhaitent passés Guide Pro.
+
+***
+
+##FAIBLESSES##
+
+Ce projet étant dans le cadre scolaire, on excusera les faiblesses ci-dessous, et le manque de rigueur dans certaines parties.
+
+- Notifications du backoffice peu efficaces, nécessite un réel travail à part en tiers, avec une table dans la base.
+- Journalisation des commandes en logs, action en Backoffice (potentiel discard changes).
+- Commentaires non surveillés efficacement via un système anti-spam, et un dictionnaire de mots interdit.
+- Système de commentaires et de notes non implémenté
+
+***
+
+##AMELIORATIONS##
+
+###Global###
+
+- Connexion plus sécurisée via cryptage plus haut (_**Sha-1**_ et sel).
+- Calcul des performances du framework et optimisation.
+- Sécurisation du code.
+- Passage vers un moyen de payement plus traditionnel
+
+###Dashboard###
+
+- Implémentation du système de disponibilités avancés avec quotas de réservations et de personnes + horaires 
+- Statistiques de l'offre visible par le guide (Total de visite)
+- Accueil du dashbord plus général, avec des notifications, rappel, liaison API avec application mobile pour les guides (version business).
+- Ajout de l'onglet payement (compte paypal, transaction effectué, en cours, ...)
+
+###Offres###
+
+- Filtrage ajax des offres lors de la recherche
+- Filtrage actif en fonction d'informations personelles (les offres que nous vous recommandons, les offres premium/payés pour être en top liste).
+- Calendrier pour selectionner le ou les dates désirées.
+- Pagination Ajax des résultats ou scroll infiny
+- Tri des offres
+- Système de notation et de commentaire à implémenter
+
+###Profile###
+
+- Liaison avec autres API (google, linkedin, facebook,...) pour dynamisation social de la page.
+- Système de vérification anti-Spam pour les commentaires, même si il est necessaire de recevoir un token pour voter. Implémentation d'un dictionnaire liste noire de mots.
+
+###Backoffice###
+
+- Implémentation de statistiques
+- Système d'onglets Ajax
+- Pagination tableau Ajax
+- Améliorations/ajout divers au système de notification
+- Implémentation d'un système de pseudo comptabilité
+- Journalisation des actions du backoffice (Delete, ... + Discard changes)
+
+###Application Mobile###
+
+- Création d'une API avec renvoie de donnée JSON.
+- Intégration du Template joint dans le dossier Design.
