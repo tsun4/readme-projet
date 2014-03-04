@@ -409,6 +409,7 @@ Elle est constitué d'un formulaire.
 Si l'utilisateur est un guide, alors cette page laisse apparaitre un second formulaire pour demander à passer PRO.
 Cette demande déclenche un mail à l'admin du site et une notification.
 
+***
 
 ##MODULE OFFER - FRONT CLIENT##
 
@@ -426,6 +427,8 @@ Cette page utilise 3 fonctions du modèle cité plus haut:
 
 
 La commande SQL de la fonction **getNoteOffer()**, récupère toutes les notes des commentaires de l'offre et fait la moyenne de ces valeurs.
+
+***
 
 ###CHECKOUT - PANIER###
 
@@ -484,6 +487,7 @@ Ce projet étant dans le cadre scolaire, on excusera les faiblesses ci-dessous, 
 - Journalisation des commandes en logs, action en Backoffice (potentiel discard changes).
 - Commentaires non surveillés efficacement via un système anti-spam, et un dictionnaire de mots interdit.
 - Système de commentaires et de notes non implémenté
+- Système de test unitaire automatisé
 
 ***
 
